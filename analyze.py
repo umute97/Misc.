@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 from __future__ import division, print_function
 import sys
 import numpy as np
@@ -7,7 +6,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import find_peaks_cwt
 import os.path
 import peakutils
-from scipy.stats import linregress
+from scipy.optimize import curve_fit
 
 #shell
 if len(sys.argv) != 3:
@@ -81,15 +80,20 @@ print('\ndiffs of p-branch:\n', diff_p, '\n')
 print('\ndiffs of r-branch:\n', diff_r, '\n')
 
 #fit
+def pbranch(j, B0, B1):
+	return 2*B0 + 2*(B0-B1)*j
+
+def rbranch(j, B0, B1):
+	return 2*(2*B1-B0)+2*(B1-B0)*j
+
 X_p = np.arange(0, len(indexes_p)-1, 1)
 X_r = np.arange(0, len(indexes_r)-1, 1)
 
-slopep, interceptp, r1, p1, stderr1 = linregress(X_p, diff_p)
-sloper, interceptr, r2, p2, stderr2 = linregress(X_r, diff_r)
+poptp, pcovp = curve_fit(pbranch, X_p, diff_p)
+poptr, pcovr = curve_fit(rbranch, X_r, diff_r)
 
-print('slope_p = %.2f, intercept_p = %.2f, R² = %.2f%%' %(slopep, interceptp, r1**2*100))
-print('slope_r = %.2f, intercept_r = %.2f, R² = %.2f%%' %(sloper, interceptr, r2**2*100))
-
+print('p-branch: B0 = %.2f,\tB1 = %.2f' %(poptp[0], poptp[1]))
+print('r-branch: B0 = %.2f,\tB1 = %.2f' %(poptr[0], poptr[1]))
 #shell
 if sys.argv[1].lower() == 'show':
 	plt.show()
