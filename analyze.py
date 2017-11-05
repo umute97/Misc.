@@ -1,4 +1,13 @@
 #!/usr/bin/python
+############################################################
+####	Analyzing peak distribution of rotational	########
+####			oscillation spectra					########
+####												########
+####	author: Umut Elicabuk						########
+####	date: 11/05/2017							########
+####												########
+############################################################
+
 from __future__ import division, print_function
 import sys
 import numpy as np
@@ -7,6 +16,17 @@ from scipy.signal import find_peaks_cwt
 import os.path
 import peakutils
 from scipy.optimize import curve_fit
+from matplotlib.backends.backend_pdf import PdfPages
+import matplotlib.pyplot as plt
+
+#saves figures into one multipage pdf
+def multipage(filename, figs=None, dpi=200):
+    pp = PdfPages(filename)
+    if figs is None:
+        figs = [plt.figure(n) for n in plt.get_fignums()]
+    for fig in figs:
+        fig.savefig(pp, format='pdf')
+    pp.close()
 
 #shell
 if len(sys.argv) != 3:
@@ -19,12 +39,14 @@ if not os.path.isfile(sys.argv[2]):
 X, Y = np.loadtxt(sys.argv[2], unpack=True)
 
 #plot data
+fig1 = plt.figure()
 plt.plot(X, Y, linewidth=0.1)
 plt.xlabel(r'wavenumber in $cm^{-1}$')
 plt.ylabel('optical density')
 plt.grid()
 
-#peak detection
+#peak detection (Yeah, I probably should have filtered before.
+#				Then again: it's just a worksheet.)
 indexes	= peakutils.indexes(Y, thres=0.02/max(Y), min_dist=55)
 
 #mark peaks
@@ -70,7 +92,7 @@ indexes_r = indexes[13:]	#TODO: Remove hard-coded shit.
 diff_p = np.zeros(indexes_p.size-1)
 diff_r = np.zeros(indexes_r.size-1)
 
-#calculate difffs
+#calculate diffs
 for i in range(0, len(indexes_p)-1):
 	diff_p[i]=X[indexes_p[i+1]]-X[indexes_p[i]]
 for i in range(0, len(indexes_r)-1):
@@ -92,12 +114,21 @@ X_r = np.arange(0, len(indexes_r)-1, 1)
 poptp, pcovp = curve_fit(pbranch, X_p, diff_p)
 poptr, pcovr = curve_fit(rbranch, X_r, diff_r)
 
+fig2 = plt.figure()
+plt.plot(X_p, pbranch(X_p, poptp[0], poptp[1]), label='p-branch')
+plt.plot(X_r, rbranch(X_r, poptr[0], poptr[1]), label='r-branch')
+plt.xlabel(r'quantum number $j_0$')
+plt.ylabel(r'$\Delta\omega$ in $cm^{-1}$')
+plt.grid()
+plt.legend()
+
 print('p-branch: B0 = %.2f,\tB1 = %.2f' %(poptp[0], poptp[1]))
 print('r-branch: B0 = %.2f,\tB1 = %.2f' %(poptr[0], poptr[1]))
+
 #shell
 if sys.argv[1].lower() == 'show':
 	plt.show()
 elif sys.argv[1].lower() == 'save':
-	plt.savefig('%s.pdf' %sys.argv[2][:-4])
+	multipage('output.pdf')
 else:
 	quit('Usage: .//analyze.py !>>> <show|save> <<<! <spectrum.dat>')
