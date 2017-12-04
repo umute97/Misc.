@@ -3,7 +3,7 @@ from __future__ import division, print_function
 import numpy as np
 import itertools
 import matplotlib.pyplot as plt
-#import peakutils
+import peakutils
 
 #lattice constants in A
 nmax = 3
@@ -29,20 +29,23 @@ for n in range(0, nmax):
 				print('(%i, %i, %i): %.2f' %(h, k, l, twotheta[h][k][l]*180/np.pi))
 
 #plot of spectrum
-angle, intensity = np.loadtxt('data.txt', unpack=True)
+angle, intensity = np.loadtxt('braggspectrum.txt', unpack=True)
 plt.plot(angle, intensity, color='blue')
 plt.xlabel('$2\\theta$ in $\\degree$')
 plt.ylabel('intensity in a.u.')
+plt.grid();
+#peak detection
+indexes	= peakutils.indexes(intensity, thres=0.02/max(intensity))
 
-# #peak detection
-# indexes	= peakutils.indexes(Y, thres=0.02/max(Y), min_dist=55)
-#
-# #mark peaks in spectrum
-# for i in indexes:
-# 	plt.plot(angle[i], intensity[i], fmt='o', color='red')
-#
-# print('==========================================\npeak angles[deg]:')
-# for i in indexes:
-# 	print(angle[i])
+for i in indexes:
+	if intensity[i] == 0:
+		np.delete(intensity[i])
+#mark peaks in spectrum
+for i in indexes:
+	plt.plot(angle[i], intensity[i], marker='o', color='red', markersize=3)
+
+print('==========================================\npeak angles[deg]:')
+for i in indexes:
+	print(angle[i])
 
 plt.savefig('braggspectrum.pdf')
